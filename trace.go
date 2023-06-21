@@ -76,7 +76,6 @@ func main() {
 	var path string
 	if len(args) == 2 {
 		path = args[1]
-		fmt.Println(path)
 	} else {
 		path = "tmp/a.out"
 	}
@@ -84,9 +83,12 @@ func main() {
 	trace_bin(path)
 	unparsed_syscalls := readLog()
 
-	syscalls := parseLog(unparsed_syscalls)
+	var trace Trace
+	trace.Binary = path
+	trace.SysCalls = parseLog(unparsed_syscalls)
 
-	for _, syscall := range syscalls {
+	fmt.Println(trace.Binary)
+	for _, syscall := range trace.SysCalls {
 		fmt.Println(syscall)
 	}
 }
