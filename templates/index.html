@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>tracy</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        table {
+            margin: 0 auto;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <h1 id="binPath">tracy</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>SysCall</th>
+            </tr>
+        </thead>
+        <tbody id="traceData"></tbody>
+    </table>
+
+    <script>
+        // Function to make the GET request and render the data
+        function getTraceData() {
+            fetch("/getTrace")
+                .then(response => response.json())
+                .then(data => {
+                    const binaryPath = data.binary;
+                    var binaryRow = document.getElementById("binPath")
+                    binaryRow.innerHTML = binaryPath;
+                    
+                    const traceData = document.getElementById("traceData");
+                    traceData.innerHTML = "";
+
+                    // Iterate over the syscalls and render the rows
+                    data.syscalls.forEach(syscall => {
+                        const time = syscall.time;
+                        const op = syscall.op;
+
+                        const row = document.createElement("tr");
+                        row.innerHTML = `<td>${time}</td><td>${op}</td>`;
+                        traceData.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                });
+        }
+
+        // Call the function when the page loads
+        window.onload = getTraceData;
+    </script>
+</body>
+</html>

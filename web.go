@@ -13,10 +13,15 @@ import (
 
 func RunWeb(trace trace.Trace) *http.Server {
 	router := gin.Default()
+	router.LoadHTMLGlob("templates/*.html")
 
 	router.GET("/getTrace", func(c *gin.Context) {
 
 		c.JSON(http.StatusOK, trace)
+	})
+
+	router.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", gin.H{"content": "main page"})
 	})
 
 	server := &http.Server{
