@@ -1,4 +1,4 @@
-package trace
+package tracers
 
 import (
 	"bufio"
@@ -19,9 +19,12 @@ type Trace struct {
 
 func (t *Trace) ExecBin() {
 
-	// Create the strace command
 	cmd := exec.Command("blink", "-s", t.Binary)
 
+	// Create pipes for standard input/output/error
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
 		panic(err)
@@ -72,8 +75,8 @@ func ParseLog(unparsed_syscalls []string) []SysCall {
 func (t *Trace) TraceBin() {
 
 	t.ExecBin()
-	unparsed_syscalls := ReadLog()
 
+	unparsed_syscalls := ReadLog()
 	t.SysCalls = ParseLog(unparsed_syscalls)
 
 }
