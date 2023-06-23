@@ -2,6 +2,9 @@ package tracers
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -17,66 +20,70 @@ type Trace struct {
 	SysCalls []SysCall `json:"syscalls"`
 }
 
-func (t *Trace) ExecBin() {
+func (t *Trace) sendTrace() {
+	endp := "http://localhost:1337/sendTrace"
+	body, err := json.Marshal(t)
+	if err != nil {
+		panic(err)
+	}
 
-	cmd := exec.Command("blink", "-s", t.Binary)
+	var r *http.Request
+	r, err = http.NewRequest("POST", endp, bytes.NewBuffer(body))
+	if err != nil {
+		panic(err)
+	}
+
+	r.Header.Add("Content-Type", "application/json")
+
+	client := &http.Client{}
+	res, err := client.Do(r)
+	if err != nil {
+		panic(err)
+	}
+
+	defer res.Body.Close()
+}
+
+func (t *Trace) ParseLog(line string) {
+	var syscall SysCall
+	if strings.Contains(line, "strace.c") || strings.Contains(line, "exit_group") {
+		splitted := strings.Split(line, " ")
+		syscall.Time = strings.Split(splitted[0], ":blink")[0]
+		syscall.OP = strings.Join(splitted[2:], " ")
+		t.SysCalls = append(t.SysCalls, syscall)
+	}
+
+}
+
+func (t *Trace) TraceBin() {
+	cmd := exec.Command("blink", "-s", "-e", t.Binary)
 
 	// Create pipes for standard input/output/error
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		panic(err)
 	}
 
-}
-
-func ReadLog() []string {
-	logPath := "blink.log"
-
-	file, err := os.Open(logPath)
+	err = cmd.Start()
 	if err != nil {
 		panic(err)
 	}
-	defer file.Close()
 
-	var unparsed_syscalls []string
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		unparsed_syscalls = append(unparsed_syscalls, line)
-	}
-
-	if err := scanner.Err(); err != nil {
-		panic(err)
-	}
-
-	os.Remove(logPath)
-	return unparsed_syscalls
-}
-
-func ParseLog(unparsed_syscalls []string) []SysCall {
-	var syscalls []SysCall
-	for _, line := range unparsed_syscalls {
-		var syscall SysCall
-		if strings.Contains(line, "strace.c") || strings.Contains(line, "exit_group") {
-			splitted := strings.Split(line, " ")
-			syscall.Time = strings.Split(splitted[0], ":blink")[0]
-			syscall.OP = strings.Join(splitted[2:], " ")
-			syscalls = append(syscalls, syscall)
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			output := scanner.Text()
+			t.ParseLog(output)
+			t.sendTrace()
 		}
+
+	}()
+
+	err = cmd.Wait()
+	if err != nil {
+		panic(err)
 	}
-
-	return syscalls
-}
-
-func (t *Trace) TraceBin() {
-
-	t.ExecBin()
-
-	unparsed_syscalls := ReadLog()
-	t.SysCalls = ParseLog(unparsed_syscalls)
 
 }

@@ -41,7 +41,7 @@
                     const binaryPath = data.binary;
                     var binaryRow = document.getElementById("binPath")
                     binaryRow.innerHTML = binaryPath;
-                    
+
                     const traceData = document.getElementById("traceData");
                     traceData.innerHTML = "";
 
@@ -61,7 +61,11 @@
         }
 
         // Call the function when the page loads
-        window.onload = getTraceData;
+        window.onload =  function () {
+            getTraceData();
+
+            setInterval(getTraceData, 500);
+        }
     </script>
 </body>
 </html>

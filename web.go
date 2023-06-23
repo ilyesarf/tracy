@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -14,6 +12,11 @@ import (
 )
 
 func RunWeb() *http.Server {
+	gin.SetMode(gin.ReleaseMode)
+
+	// Disable Gin's default logger output
+	gin.DefaultWriter = ioutil.Discard
+
 	router := gin.Default()
 	router.LoadHTMLGlob("templates/*.html")
 
@@ -45,31 +48,6 @@ func RunWeb() *http.Server {
 	return server
 }
 
-func sendTrace(trace tracers.Trace) {
-	endp := "http://localhost:1337/sendTrace"
-	fmt.Println(endp)
-	body, err := json.Marshal(trace)
-	if err != nil {
-		panic(err)
-	}
-
-	var r *http.Request
-	r, err = http.NewRequest("POST", endp, bytes.NewBuffer(body))
-	if err != nil {
-		panic(err)
-	}
-
-	r.Header.Add("Content-Type", "application/json")
-
-	client := &http.Client{}
-	res, err := client.Do(r)
-	if err != nil {
-		panic(err)
-	}
-
-	defer res.Body.Close()
-}
-
 func main() {
 
 	go func() {
@@ -94,7 +72,6 @@ func main() {
 		var trace tracers.Trace
 		trace.Binary = path
 		trace.TraceBin()
-		sendTrace(trace)
 	}()
 	select {}
 }
