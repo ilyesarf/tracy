@@ -62,16 +62,14 @@ func main() {
 	go func() {
 		args := os.Args
 
-		var path string
+		var trace tracers.Trace
 		if len(args) >= 2 {
-			path = args[1]
+			trace.Binary = args[1]
+			trace.Args = args[2:]
 		} else {
-			path = "tmp/a.out"
+			trace.Binary = "tmp/a.out"
 		}
 
-		var trace tracers.Trace
-		trace.Binary = path
-		trace.Args = args[2:]
 		trace.TraceBin()
 	}()
 	select {}

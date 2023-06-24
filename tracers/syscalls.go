@@ -47,17 +47,15 @@ func (t *Trace) sendTrace() {
 
 func (t *Trace) ParseLog(line string) {
 	var syscall SysCall
-	if strings.Contains(line, "strace.c") || strings.Contains(line, "exit_group") {
-		splitted := strings.Split(line, " ")
-		syscall.Time = strings.Split(splitted[0], ":blink")[0]
-		syscall.OP = strings.Join(splitted[2:], " ")
-		t.SysCalls = append(t.SysCalls, syscall)
-	}
 
+	splitted := strings.Split(line, " ")
+	syscall.Time = splitted[0]
+	syscall.OP = strings.Join(splitted[1:], " ")
+	t.SysCalls = append(t.SysCalls, syscall)
 }
 
 func (t *Trace) TraceBin() {
-	cmdArgs := []string{"blink", "-s", "-e", t.Binary}
+	cmdArgs := []string{"strace", "-tt", t.Binary}
 	cmdArgs = append(cmdArgs, t.Args...)
 
 	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
@@ -66,7 +64,7 @@ func (t *Trace) TraceBin() {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	stderr, err := cmd.StderrPipe()
-	if err != nil {
+	if err != nil { //t.
 		panic(err)
 	}
 
