@@ -16,7 +16,8 @@ type SysCall struct {
 }
 
 type Trace struct {
-	Binary   string    `json:"binary"`
+	Binary   string `json:"binary"`
+	Args     []string
 	SysCalls []SysCall `json:"syscalls"`
 }
 
@@ -56,7 +57,10 @@ func (t *Trace) ParseLog(line string) {
 }
 
 func (t *Trace) TraceBin() {
-	cmd := exec.Command("blink", "-s", "-e", t.Binary)
+	cmdArgs := []string{"blink", "-s", "-e", t.Binary}
+	cmdArgs = append(cmdArgs, t.Args...)
+
+	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
 
 	// Create pipes for standard input/output/error
 	cmd.Stdin = os.Stdin

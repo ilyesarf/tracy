@@ -63,7 +63,7 @@ func main() {
 		args := os.Args
 
 		var path string
-		if len(args) == 2 {
+		if len(args) >= 2 {
 			path = args[1]
 		} else {
 			path = "tmp/a.out"
@@ -71,6 +71,7 @@ func main() {
 
 		var trace tracers.Trace
 		trace.Binary = path
+		trace.Args = args[2:]
 		trace.TraceBin()
 	}()
 	select {}
