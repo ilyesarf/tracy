@@ -33,55 +33,69 @@
     </table>
 
     <script>
-        // Function to make the GET request and render the data
-        function getTraceData() {
-            fetch("/getTrace")
-                .then(response => response.json())
-                .then(data => {
+        // Initialize the last fetched data as null
+        let lastFetchedData = null;
 
-                    if (JSON.stringify(data) !== JSON.stringify(lastFetchedData)) {
-                        const binaryPath = data.binary;
-                        var binaryRow = document.getElementById("binPath")
-                        binaryRow.innerHTML = binaryPath;
+        // Function to update the UI with new data
+        function updateUI(data) {
+            if (JSON.stringify(data) !== JSON.stringify(lastFetchedData)) {
+                const binaryPath = data.binary;
+                var binaryRow = document.getElementById("binPath")
+                binaryRow.innerHTML = binaryPath;
 
-                        const traceData = document.getElementById("traceData");
+                const traceData = document.getElementById("traceData");
 
-                        // Check if the new data is different from the last fetched data
-                        traceData.innerHTML = "";
+                // Check if the new data is different from the last fetched data
+                traceData.innerHTML = "";
 
-                        // Iterate over the syscalls and render the rows
-                        data.syscalls.forEach(syscall => {
-                            const time = syscall.time;
-                            const op = syscall.op;
+                // Iterate over the syscalls and render the rows
+                data.syscalls.forEach(syscall => {
+                    const time = syscall.time;
+                    const op = syscall.op;
 
-                            const row = document.createElement("tr");
-                            row.innerHTML = `<td>${time}</td><td>${op}</td>`;
-                            traceData.appendChild(row);
-                        });
-
-                        // Update the last fetched data
-                        lastFetchedData = data;
-
-                        // Scroll to the end of the page
-                        window.scrollTo(0, document.body.scrollHeight);
-                    }
-                })
-                .catch(error => {
-                    console.error("Error:", error);
+                    const row = document.createElement("tr");
+                    row.innerHTML = `<td>${time}</td><td>${op}</td>`;
+                    traceData.appendChild(row);
                 });
+
+                // Update the last fetched data
+                lastFetchedData = data;
+
+                // Scroll to the end of the page
+                window.scrollTo(0, document.body.scrollHeight);
+            } else{
+                console.log("same")
             }
+        }
 
-            // Initialize the last fetched data as null
-            let lastFetchedData = null;
+        // Function to establish WebSocket connection and receive data
 
-            // Call the function when the page loads
-            window.onload = function () {
-                getTraceData();
 
-                // Repeat the process every 500 milliseconds
-                setInterval(getTraceData, 500);
-            }
+        function connectWebSocket() {
+            const socket = new WebSocket("ws://localhost:1337/ws");
 
+            socket.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                updateUI(data);
+
+                //socket.close()
+            };
+
+            socket.onclose = function (event) {
+                console.log("WebSocket connection closed");
+            };
+
+        }
+
+        // Call the function when the page loads
+        window.onload = function () {
+            connectWebSocket(); 
+
+            // Repeat the process every 500 milliseconds
+            setInterval(connectWebSocket, 500);
+        };
+
+        
     </script>
 </body>
 </html>

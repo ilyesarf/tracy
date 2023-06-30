@@ -2,12 +2,13 @@ package tracers
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
-	"net/http"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/gorilla/websocket"
 )
 
 type SysCall struct {
@@ -21,28 +22,18 @@ type Trace struct {
 	SysCalls []SysCall `json:"syscalls"`
 }
 
-func (t *Trace) sendTrace() {
-	endp := "http://localhost:1337/sendTrace"
-	body, err := json.Marshal(t)
+func (t *Trace) SendTrace(conn *websocket.Conn) {
+	data, err := json.Marshal(t)
 	if err != nil {
 		panic(err)
 	}
 
-	var r *http.Request
-	r, err = http.NewRequest("POST", endp, bytes.NewBuffer(body))
+	//fmt.Println(conn)
+	err = conn.WriteMessage(websocket.TextMessage, data)
 	if err != nil {
-		panic(err)
+		log.Println(err)
+		conn.Close()
 	}
-
-	r.Header.Add("Content-Type", "application/json")
-
-	client := &http.Client{}
-	res, err := client.Do(r)
-	if err != nil {
-		panic(err)
-	}
-
-	defer res.Body.Close()
 }
 
 func (t *Trace) ParseLog(line string) {
@@ -64,7 +55,7 @@ func (t *Trace) TraceBin() {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	stderr, err := cmd.StderrPipe()
-	if err != nil { //t.
+	if err != nil {
 		panic(err)
 	}
 
@@ -78,7 +69,6 @@ func (t *Trace) TraceBin() {
 		for scanner.Scan() {
 			output := scanner.Text()
 			t.ParseLog(output)
-			t.sendTrace()
 		}
 
 	}()

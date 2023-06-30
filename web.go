@@ -8,8 +8,32 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/ilyesarf/tracy/tracers"
 )
+
+var trace tracers.Trace
+
+var upgrader = websocket.Upgrader{}
+
+func handleWS(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer conn.Close()
+
+	// Add client to the connected clients map
+
+	//fmt.Println(conn)
+	for {
+		trace.SendTrace(conn)
+		//conn.Close()
+		//fmt.Println(trace)
+	}
+
+}
 
 func RunWeb() *http.Server {
 	gin.SetMode(gin.ReleaseMode)
@@ -20,22 +44,12 @@ func RunWeb() *http.Server {
 	router := gin.Default()
 	router.LoadHTMLGlob("templates/*.html")
 
-	var trace tracers.Trace
-	router.GET("/getTrace", func(c *gin.Context) {
-
-		c.JSON(http.StatusOK, trace)
-	})
-
-	router.POST("/sendTrace", func(c *gin.Context) {
-		if err := c.BindJSON(&trace); err != nil {
-			return
-		}
-
-		c.Status(http.StatusOK)
-	})
-
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", gin.H{"content": "main page"})
+	})
+
+	router.GET("/ws", func(c *gin.Context) {
+		handleWS(c.Writer, c.Request)
 	})
 
 	server := &http.Server{
@@ -56,13 +70,12 @@ func main() {
 		if err := server.ListenAndServe(); err != nil {
 			log.Fatal(err)
 		}
+
 	}()
 
 	// Start binary tracing in a separate goroutine
 	go func() {
 		args := os.Args
-
-		var trace tracers.Trace
 		if len(args) >= 2 {
 			trace.Binary = args[1]
 			trace.Args = args[2:]
@@ -72,5 +85,6 @@ func main() {
 
 		trace.TraceBin()
 	}()
+
 	select {}
 }
