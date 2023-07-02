@@ -19,19 +19,11 @@ var upgrader = websocket.Upgrader{}
 func handleWS(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println(err)
-		return
+		panic(err)
 	}
 	defer conn.Close()
 
-	// Add client to the connected clients map
-
-	//fmt.Println(conn)
-	for {
-		trace.SendTrace(conn)
-		//conn.Close()
-		//fmt.Println(trace)
-	}
+	trace.SendTrace(conn)
 
 }
 
